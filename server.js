@@ -1,69 +1,55 @@
+const logger = require("morgan");
+const express = require("express");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
 
-const express = require("express")
-const app = express()
-const bodyParser = require("body-parser")
-const path = require("path")
-const PORT = 8080
-const fs = require("fs")
-
-const rootObj = {root: __dirname + "/public"};
-
-app.use(bodyParser.urlencoded({ extended: false}))
-app.use(express.static(path.join(__dirname, '/public')));
-app.get('/', (req, res) => res.sendFile("./index.html", rootObj));
-app.get('/notes', (req, res) => res.sendFile("./notes.html", rootObj));
-
-app.get('/api/notes', (req, res) => {
-    console.log("/api/notesget")
-    let json = getJson();
-    console.log(json);
-    res.json(json);
+let app = express();
+let PORT = process.env.PORT || 8080;
+let savedNotes = []
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(logger("dev"));
+app.use(express.static("public"));
+app.get("/api/notes", function(req,res){
+  savedNotes = fs.readFile(__dirname + "/db/db.json", "utf8", function(err, data){
+    res.json(JSON.parse(data));
+  });
+});
+app.post("/api/notes", function(req,res){
+  const note = req.body;
+  note.id = (uuidv4());
+  fs.readFile(__dirname + "/db/db.json", "utf8", function (err, data){
+    const savedNotes = JSON.parse(data);
+    savedNotes.push(note);
+    const stringified = JSON.stringify(savedNotes, null, 2);
+    fs.writeFile(__dirname + "/db/db.json", stringified, function () {
+      res.json(note)
+    })
+  })
 })
 
-app.post('/api/notes', (req, res) => {
-    console.log('/api/notespost')
-    console.log(req.body);
-    addNoteToJSON(req.body)
-    res.json(getJson());
+app.delete("/api/notes/:id", function (req,res){
+  const {id} = req.params;
+  fs.readFile(__dirname + "/db/db.json", "utf8", function (err, data){
+    let savedNotes = JSON.parse(data);
+    savedNotes = savedNotes.filter((savedNote) => savedNote.id !== id);
+    const filteredNotes = JSON.stringify(savedNotes, null, 2);
+    fs.writeFile(__dirname + "/db/db.json", filteredNotes, function () {
+      res.json(true);
+    })
+  })
+
 })
 
-app.delete('/api/notes:id', (req,res) => {
-    console.log('api/notes/:delete')
-    deleteNameFromJSON(req.param.id);
-    res.json(getJson());
-})
+app.get("/notes", function(req,res){
+  res.sendFile(path.join(__dirname + "/public/notes.html"))
+});
 
-app.listen(PORT, () => console.log(`example app listening a http://localhost:${PORT}`))
+app.get("*", function (req,res) {
+    res.sendFile(__dirname + "/public/index.html")
+});
 
-
-function getJson() {
-    let data = fs.readFileSync(__dirname + '/db.db.json');
-    let json = JSON.parse(data);
-    return json; 
-}
-
-function createNoteObject(data) {
-    let obj = {title: data.title,
-        text: data.text,
-        complete: false,
-        hidden: false}
-        return obj
-}
-
-
-function addNoteToJSON(note) {
-    let json = getJson();
-    let newNote = createNote
-}
-
-function saveJSON(jsonData) {
-    let data = JSON.stringify(jsonData);
-    fs.writeFileSync(__dirname + '/db/db.json', data);
-
-}
-
-function selectNoteFromJSON(id) {
-    let json = getJson();
-    json(id).hide = true
-    saveJSON(json);
-}
+app.listen(PORT, () =>
+  console.log(`App listening at http://localhost:${PORT}`)
+);
