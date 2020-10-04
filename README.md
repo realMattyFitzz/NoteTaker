@@ -2,6 +2,10 @@
   # NoteTaker
   ## DESCRIPTION
   A basic web application to create, save, and delete notes
+  
+  ![noteTaker](https://user-images.githubusercontent.com/67922824/95023338-55f1b480-0631-11eb-8a40-9399f3c42aa2.gif)
+
+  
   ## TABLE OF CONTENTS
   * [Installation](#installation)
   * [Usage](#usage)
